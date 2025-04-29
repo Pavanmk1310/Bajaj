@@ -1,0 +1,14 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+*.db
+*.sqlite3
+node_modules/
+temp_uploads/
+easyocr/
+test/
+*.log
