@@ -125,4 +125,3 @@ async def get_lab_tests(file: UploadFile = File(...)):
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
         os.remove(temp_path)
-
