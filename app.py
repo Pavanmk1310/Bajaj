@@ -6,16 +6,11 @@ import numpy as np
 import shutil
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
-import uvicorn
 import os
 
 app = FastAPI()
 
-# Initialize EasyOCR reader
-reader = easyocr.Reader(['en'])
-
-def extract_clean_text(image_path):
-    """Extract text from image using EasyOCR"""
+def extract_clean_text(image_path, reader):
     image = cv2.imread(image_path)
     results = reader.readtext(image, detail=0, paragraph=True)
 
@@ -124,8 +119,8 @@ def extract_using_specialized_patterns(text, lines):
 
     return lab_tests
 
-def process_lab_report(image_path):
-    full_text, full_text_lower, lines = extract_clean_text(image_path)
+def process_lab_report(image_path, reader):
+    full_text, full_text_lower, lines = extract_clean_text(image_path, reader)
     lab_tests = extract_lab_tests(full_text, full_text_lower, lines)
     return {
         "is_success": True if lab_tests else False,
@@ -135,7 +130,7 @@ def process_lab_report(image_path):
 @app.post("/get-lab-tests")
 async def get_lab_tests(file: UploadFile = File(...)):
     # Save the uploaded image to a temp file
-    temp_dir = "temp_uploads"
+    temp_dir = "/tmp"
     os.makedirs(temp_dir, exist_ok=True)
     temp_file_path = os.path.join(temp_dir, file.filename)
 
@@ -143,10 +138,12 @@ async def get_lab_tests(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        result = process_lab_report(temp_file_path)
+        # Load EasyOCR reader inside the endpoint to save RAM
+        reader = easyocr.Reader(['en'])
+        result = process_lab_report(temp_file_path, reader)
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
-        os.remove(temp_file_path)  # cleanup
+        os.remove(temp_file_path)
 
     return result
